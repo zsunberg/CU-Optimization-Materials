@@ -1,0 +1,55 @@
+\documentclass{article}
+\usepackage{fullpage,amsmath,amsthm,graphicx,enumitem}
+\usepackage{multicol}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{tikz}
+
+\theoremstyle{definition}
+\newtheorem{thm}{Theorem}
+\newtheorem{question}[thm]{Question}
+\newenvironment{solution}{\noindent\textit{Solution:}}{}
+
+\title{ASEN 6519: Optimization: Applications and Algorithms\\
+       Homework 1}
+
+\begin{document}
+
+\maketitle
+
+\section{Questions}
+
+\begin{question}
+    Suppose we are given only three function evaluations to shrink a bracket of a unimodal function. In relative terms, how much tighter is the resulting interval when using Fibonacci search compared to the golden section search?
+\end{question}
+
+\begin{question}
+    Use dual numbers to find the derivative of the function $f(x) = x^2 + 2x + 1$ as a function of $x$ and evaluate it at $x=-2$. Show all steps.
+\end{question}
+
+\begin{question}
+    Suppose minimization problem $P2$ is obtained by adding a new constraint to minimization problem $P1$. If the optimal value of $P1$ is $v_1$ and the optimal value of $P2$ is $v_2$, which of the following statements can be proven without any additional information?
+    \begin{enumerate}[label=(\alph*)]
+        \item $v_1 = v_2$
+        \item $v_1 < v_2$
+        \item $v_1 > v_2$
+        \item $v_1 \geq v_2$
+        \item $v_1 \leq v_2$
+    \end{enumerate}
+    If the statement is not provable, provide a counterexample. If the statement is provable, provide a short proof.
+    % Draw a simple counterexample for each unprovable statement and provide a short proof for each provable statement.
+\end{question}
+
+\begin{question}
+    For this question, we will focus on optimizing the function $$f(x) = x^3 + x\,\cos\left(3\,x\right) + \frac{\sin \left(8\,x^2 \right)}{2}\text{.}$$ on the interval $x \in [-1, 1]$.
+    \begin{enumerate}[label=(\alph*)]
+        \item Is this function unimodal on $[-1, 1]$? Justify your answer.
+        \item Is this function Lipschitz continuous on the interval $[-1, 1]$? If it is, find a Lipschitz constant for it.
+        \item Find the critical points of $f(x)$ to a precision of 3 digits without evaluating the derivative of $f(x)$. Plot the critical points on the graph of $f(x)$.
+        \item Use the Shubert-Piyavskii algorithm to find a lower bound for the function on the interval $[-1, 1]$. Plot the lower bound after 50 function evaluations. With this algorithm, the Lipschitz constant that you determined in part (b), and 50 function evaluations, is it possible to find the global minimum, $x^*$, with an error of less than 0.1?
+        % \item Use the second derivative test to determine the local minima and maxima of $f(x)$.
+        % \item Use the golden section search to find the global minimum of $f(x)$.
+    \end{enumerate}
+\end{question}
+
+\end{document}
