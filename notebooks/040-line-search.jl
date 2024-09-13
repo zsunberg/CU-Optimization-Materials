@@ -8,8 +8,11 @@ using InteractiveUtils
 begin
 	using Zygote
 	using Plots
-	using LinearAlgebra:norm
+	using LinearAlgebra
 end
+
+# ╔═╡ e586210a-de15-4675-bf06-57528f355f43
+get_quad(A) = x -> dot(x, A*x)
 
 # ╔═╡ fa2291b5-e5d2-4720-8f71-7da496a2b620
 booth(x) = (x[1]+2x[2]-7)^2 + (2x[1]+x[2]-5)^2
@@ -17,8 +20,11 @@ booth(x) = (x[1]+2x[2]-7)^2 + (2x[1]+x[2]-5)^2
 # ╔═╡ 67a3a583-5b5c-4f3d-899f-6c8d1e80826e
 rosenbrock(x; a=1, b=5) = (a-x[1])^2 + b*(x[2] - x[1]^2)^2
 
+# ╔═╡ d97416cd-cfd6-47ea-a0ba-9b1cf4e74c13
+A = diagm([1,10])
+
 # ╔═╡ 7c9242be-9924-4dcb-9e10-ccfb78463131
-f = booth
+f = rosenbrock
 
 # ╔═╡ 00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
 mycontour(f, args...; kwargs...) = contour(range(-10, 10, 500), range(-10, 10, 500), (x, y)->f([x, y]), args...;  levels=[1,2,3,5,10,20,50,100], kwargs...)
@@ -33,19 +39,50 @@ function gradient_descent(f, x0=[0.0, 0.0]; α=0.1, n=100)
 	∇f = x->first(gradient(f, x))
 	for _ in 1:n
 		g = ∇f(x)
-		x = x - α*g/norm(g)
+		x = x - α*g
 		push!(history, x)
 	end
 	return history
 end
 
+# ╔═╡ 6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
+x0 = [-1, 1]
+
 # ╔═╡ a96753cd-87f8-4244-a782-4a0676374d70
-h = gradient_descent(f, [-1,2], α=0.3)
+h = gradient_descent(f, x0, α=1/20, n=10)
 
 # ╔═╡ 8b47b37a-ee7e-4377-b1ea-75eae5123d59
 begin
 	mycontour(f)
-	plot!(first.(h), last.(h), xlim=(-2,5), ylim=(-0, 5), marker=true, label="gradient descent")
+	plot!(first.(h), last.(h), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label="gradient descent")
+end
+
+# ╔═╡ 142982a3-9bcc-4d5b-ac41-4e8f534af60b
+function backtracking_gradient_descent(f, x0=[0.0, 0.0]; α₀=1.0, β=1e-4, ρ=0.5, n=100)
+	x = float(x0)
+	history = [x]
+	∇f = x->first(gradient(f, x))
+	for _ in 1:n
+		y = f(x)
+		g = ∇f(x)
+		d = -g/norm(g)
+		α = α₀
+		while f(x + α*d) > y + β*α*(dot(g, d))
+			α *= ρ
+		end
+		x += α*d
+		push!(history, x)
+	end
+	return history
+end
+
+# ╔═╡ 946bcf21-12bd-4b17-b527-14f9a812bf15
+hb = backtracking_gradient_descent(f, x0, n=100)
+
+# ╔═╡ 839995b0-f1c3-4dd6-bbbb-df0c88f47f4f
+begin
+	mycontour(f)
+	plot!(first.(hb), last.(hb), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label="backtracking gradient descent")
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -1376,13 +1413,19 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╠═881fd396-6f92-11ef-37f7-19f89b7f2521
+# ╠═e586210a-de15-4675-bf06-57528f355f43
 # ╠═fa2291b5-e5d2-4720-8f71-7da496a2b620
 # ╠═67a3a583-5b5c-4f3d-899f-6c8d1e80826e
+# ╠═d97416cd-cfd6-47ea-a0ba-9b1cf4e74c13
 # ╠═7c9242be-9924-4dcb-9e10-ccfb78463131
 # ╠═00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
 # ╠═ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
 # ╠═12a99b47-4759-4922-99c1-ba526f064cee
+# ╠═6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
 # ╠═a96753cd-87f8-4244-a782-4a0676374d70
 # ╠═8b47b37a-ee7e-4377-b1ea-75eae5123d59
+# ╠═142982a3-9bcc-4d5b-ac41-4e8f534af60b
+# ╠═946bcf21-12bd-4b17-b527-14f9a812bf15
+# ╠═839995b0-f1c3-4dd6-bbbb-df0c88f47f4f
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
