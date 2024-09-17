@@ -9,19 +9,20 @@ begin
 	using Zygote
 	using Plots
 	using LinearAlgebra
+	using BenchmarkTools
 end
 
 # ╔═╡ e586210a-de15-4675-bf06-57528f355f43
 get_quad(A) = x -> dot(x, A*x)
 
 # ╔═╡ fa2291b5-e5d2-4720-8f71-7da496a2b620
-booth(x) = (x[1]+2x[2]-7)^2 + (2x[1]+x[2]-5)^2
+booth(x) = (x[1]+2x[2]-7/10)^2 + (2x[1]+x[2]-5/10)^2
 
 # ╔═╡ 67a3a583-5b5c-4f3d-899f-6c8d1e80826e
 rosenbrock(x; a=1, b=5) = (a-x[1])^2 + b*(x[2] - x[1]^2)^2
 
 # ╔═╡ d97416cd-cfd6-47ea-a0ba-9b1cf4e74c13
-A = diagm([1,10])
+A = diagm([1,1])
 
 # ╔═╡ 7c9242be-9924-4dcb-9e10-ccfb78463131
 f = rosenbrock
@@ -32,41 +33,25 @@ mycontour(f, args...; kwargs...) = contour(range(-10, 10, 500), range(-10, 10, 5
 # ╔═╡ ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
 mycontour(f, xlim=(-2, 2), ylim=(-2, 2))
 
-# ╔═╡ 12a99b47-4759-4922-99c1-ba526f064cee
-function gradient_descent(f, x0=[0.0, 0.0]; α=0.1, n=100)
-	x = float(x0)
-	history = [x]
-	∇f = x->first(gradient(f, x))
-	for _ in 1:n
-		g = ∇f(x)
-		x = x - α*g
-		push!(history, x)
-	end
-	return history
-end
-
 # ╔═╡ 6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
-x0 = [-1, 1]
-
-# ╔═╡ a96753cd-87f8-4244-a782-4a0676374d70
-h = gradient_descent(f, x0, α=1/20, n=10)
-
-# ╔═╡ 8b47b37a-ee7e-4377-b1ea-75eae5123d59
-begin
-	mycontour(f)
-	plot!(first.(h), last.(h), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label="gradient descent")
-end
+x0 = [-1.0, 2.0]
 
 # ╔═╡ 142982a3-9bcc-4d5b-ac41-4e8f534af60b
-function backtracking_gradient_descent(f, x0=[0.0, 0.0]; α₀=1.0, β=1e-4, ρ=0.5, n=100)
+function backtracking_search(f, direction, x0=[0.0, 0.0];
+							 α₀=1.0, β=1e-4, ρ=0.5, n=100, ϵg=1e-4)
 	x = float(x0)
 	history = [x]
 	∇f = x->first(gradient(f, x))
 	for _ in 1:n
 		y = f(x)
 		g = ∇f(x)
-		d = -g/norm(g)
+		if norm(g) < ϵg
+			break
+		end
+		d = direction(x, g)
 		α = α₀
+
+		# backtracking
 		while f(x + α*d) > y + β*α*(dot(g, d))
 			α *= ρ
 		end
@@ -77,22 +62,56 @@ function backtracking_gradient_descent(f, x0=[0.0, 0.0]; α₀=1.0, β=1e-4, ρ=
 end
 
 # ╔═╡ 946bcf21-12bd-4b17-b527-14f9a812bf15
-hb = backtracking_gradient_descent(f, x0, n=100)
+function gradient_direction(x, g)
+	return -g/norm(g)
+end
 
-# ╔═╡ 839995b0-f1c3-4dd6-bbbb-df0c88f47f4f
+# ╔═╡ 9fadaef1-45b5-48d0-9655-518e7a87337f
+function newton_direction(x, g)
+	H = hessian(f, x)
+	return -H\g
+end
+
+# ╔═╡ bbf8672f-a687-46b2-8640-5aa77f106f75
+methods = [
+	"Gradient"=>()->backtracking_search(f, gradient_direction, x0, n=100, ϵg=0.0),
+	"Newton"=>()->backtracking_search(f, newton_direction, x0, n=100, ϵg=0.0)
+]
+
+# ╔═╡ 34c9123a-2446-43ce-b278-9a7005c90afa
+histories = map(methods) do pair
+	k, procedure = pair
+	return k=>procedure()
+end	
+
+# ╔═╡ 0218df75-241d-497d-af1c-e27bfc18bf42
 begin
 	mycontour(f)
-	plot!(first.(hb), last.(hb), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label="backtracking gradient descent")
+	for (k, h) in histories
+		plot!(first.(h), last.(h), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label=k*" ($(length(h)-1) steps)")
+	end
+	plot!()
 end
+
+# ╔═╡ 8bfb549c-fa2f-45f5-82d6-2523fdb2e2c8
+benchmarks = map(methods) do pair
+	k, procedure = pair
+	return k => @benchmark $procedure()
+end
+
+# ╔═╡ 1b0bdff9-faa0-4438-8b08-8750e6802593
+benchmarks[2][2]
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+BenchmarkTools = "~1.5.0"
 Plots = "~1.40.5"
 Zygote = "~0.6.70"
 """
@@ -103,7 +122,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.5"
 manifest_format = "2.0"
-project_hash = "c09c3ba463d7918321e21bf15615a4349136ca77"
+project_hash = "17c057bc3a930dd23e8cf2ffa18d3dd8062cc0af"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -137,6 +156,12 @@ uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+
+[[deps.BenchmarkTools]]
+deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
+git-tree-sha1 = "f1dff6729bc61f4d49e140da1af55dcd1ac97b2f"
+uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+version = "1.5.0"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
@@ -860,6 +885,10 @@ version = "1.4.3"
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 
+[[deps.Profile]]
+deps = ["Printf"]
+uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
 git-tree-sha1 = "492601870742dcd38f233b23c3ec629628c1d724"
@@ -1420,12 +1449,14 @@ version = "1.4.1+1"
 # ╠═7c9242be-9924-4dcb-9e10-ccfb78463131
 # ╠═00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
 # ╠═ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
-# ╠═12a99b47-4759-4922-99c1-ba526f064cee
 # ╠═6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
-# ╠═a96753cd-87f8-4244-a782-4a0676374d70
-# ╠═8b47b37a-ee7e-4377-b1ea-75eae5123d59
 # ╠═142982a3-9bcc-4d5b-ac41-4e8f534af60b
 # ╠═946bcf21-12bd-4b17-b527-14f9a812bf15
-# ╠═839995b0-f1c3-4dd6-bbbb-df0c88f47f4f
+# ╠═9fadaef1-45b5-48d0-9655-518e7a87337f
+# ╠═bbf8672f-a687-46b2-8640-5aa77f106f75
+# ╠═34c9123a-2446-43ce-b278-9a7005c90afa
+# ╠═0218df75-241d-497d-af1c-e27bfc18bf42
+# ╠═8bfb549c-fa2f-45f5-82d6-2523fdb2e2c8
+# ╠═1b0bdff9-faa0-4438-8b08-8750e6802593
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

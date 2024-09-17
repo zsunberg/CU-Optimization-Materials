@@ -49,7 +49,7 @@ end
 x0 = [-1, 1]
 
 # ╔═╡ a96753cd-87f8-4244-a782-4a0676374d70
-h = gradient_descent(f, x0, α=1/20, n=10)
+h = gradient_descent(f, x0, α=1/20, n=100)
 
 # ╔═╡ 8b47b37a-ee7e-4377-b1ea-75eae5123d59
 begin
@@ -77,7 +77,7 @@ function backtracking_gradient_descent(f, x0=[0.0, 0.0]; α₀=1.0, β=1e-4, ρ=
 end
 
 # ╔═╡ 946bcf21-12bd-4b17-b527-14f9a812bf15
-hb = backtracking_gradient_descent(f, x0, n=100)
+hb = backtracking_gradient_descent(f, x0, n=10)
 
 # ╔═╡ 839995b0-f1c3-4dd6-bbbb-df0c88f47f4f
 begin
