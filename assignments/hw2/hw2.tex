@@ -1,0 +1,41 @@
+\documentclass{article}
+\usepackage{fullpage,amsmath,amsthm,graphicx,enumitem}
+\usepackage{multicol}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{tikz}
+
+\theoremstyle{definition}
+\newtheorem{thm}{Theorem}
+\newtheorem{question}[thm]{Question}
+\newenvironment{solution}{\noindent\textit{Solution:}}{}
+
+\title{ASEN 6519: Optimization: Applications and Algorithms\\
+       Homework 2}
+
+\begin{document}
+
+\maketitle
+
+\begin{center}
+    \large{\textbf{DRAFT - the details of the assignment will change later this week.}}
+\end{center}
+
+\section{Questions}
+
+\begin{question}
+    Analytically find the critical points of
+    $$f(\mathbf{x}) = x_1^4 + 3 x_1^3 + 3 x_2^2 - 6 x_1 x_2 - 2 x_2$$
+    and classify them as local minima, maxima, or saddle points.
+    Verify your answers by creating an appropriate contour plot.
+\end{question}
+
+\begin{question}
+    Implement two algorithms for finding the minimum of the Rosenbrock function from a starting point of [-1.2, 1]. One algorithm can be copied from the class notebooks or book. The other should be implemented from scratch (you can consult the book, but do not copy the code). Plot the path that both of the algorithms take as done in class and compare the number of iterations required to reach an approximate critical point (where $\lVert \nabla f(x) \rVert < 10^{-4}$).
+\end{question}
+
+\begin{question}
+    A weight is supported by three springs connected to the ceiling. The springs have spring constants $k_1$, $k_2$, and $k_3$ with unstretched lengths $l_1$, $l_2$, and $l_3$, and they are connected to the ceiling at points... The system will be in equilibrium when the potential energy of the system is minimized. Formulate this as an unconstrained optimization problem and solve it with one of the algorithms you implemented for the previous question.
+\end{question}
+
+\end{document}
