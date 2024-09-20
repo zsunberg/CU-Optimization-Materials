@@ -4,12 +4,23 @@
 using Markdown
 using InteractiveUtils
 
+# This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
+macro bind(def, element)
+    quote
+        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local el = $(esc(element))
+        global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
+        el
+    end
+end
+
 # ╔═╡ 881fd396-6f92-11ef-37f7-19f89b7f2521
 begin
 	using Zygote
 	using Plots
 	using LinearAlgebra
 	using BenchmarkTools
+	using PlutoUI
 end
 
 # ╔═╡ e586210a-de15-4675-bf06-57528f355f43
@@ -28,10 +39,13 @@ A = diagm([1,1])
 f = rosenbrock
 
 # ╔═╡ 00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
-mycontour(f, args...; kwargs...) = contour(range(-10, 10, 500), range(-10, 10, 500), (x, y)->f([x, y]), args...;  levels=[1,2,3,5,10,20,50,100], kwargs...)
+mycontour!(f, args...; kwargs...) = contour!(range(-10, 10, 500), range(-10, 10, 500), (x, y)->f([x, y]), args...;  levels=[1,2,3,5,10,20,50,100], kwargs...)
 
 # ╔═╡ ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
-mycontour(f, xlim=(-2, 2), ylim=(-2, 2))
+begin
+	plot();
+	mycontour!(f, xlim=(-2, 2), ylim=(-2, 2))
+end
 
 # ╔═╡ 6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
 x0 = [-1.0, 2.0]
@@ -74,8 +88,8 @@ end
 
 # ╔═╡ bbf8672f-a687-46b2-8640-5aa77f106f75
 methods = [
-	"Gradient"=>()->backtracking_search(f, gradient_direction, x0, n=100, ϵg=0.0),
-	"Newton"=>()->backtracking_search(f, newton_direction, x0, n=100, ϵg=0.0)
+	"Gradient"=>()->backtracking_search(f, gradient_direction, x0, n=100, ϵg=1e-4),
+	"Newton"=>()->backtracking_search(f, newton_direction, x0, n=100, ϵg=1e-4)
 ]
 
 # ╔═╡ 34c9123a-2446-43ce-b278-9a7005c90afa
@@ -86,12 +100,18 @@ end
 
 # ╔═╡ 0218df75-241d-497d-af1c-e27bfc18bf42
 begin
-	mycontour(f)
+	plot()
+	mycontour!(f)
 	for (k, h) in histories
 		plot!(first.(h), last.(h), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label=k*" ($(length(h)-1) steps)")
 	end
 	plot!()
 end
+
+# ╔═╡ 45d132bb-5df2-4f9c-8abd-c0053c0f2a4a
+md"""
+## Performance
+"""
 
 # ╔═╡ 8bfb549c-fa2f-45f5-82d6-2523fdb2e2c8
 benchmarks = map(methods) do pair
@@ -102,17 +122,47 @@ end
 # ╔═╡ 1b0bdff9-faa0-4438-8b08-8750e6802593
 benchmarks[2][2]
 
+# ╔═╡ 006aa7c0-8b1e-4461-9050-044ff4a30aa0
+md"""
+## Visualization
+"""
+
+# ╔═╡ c273b06b-4df8-45f7-be16-85a936fd475b
+hi = 2
+
+# ╔═╡ 741d9daf-9b7d-4704-a6e3-6bdd8813d785
+@bind k Slider(1:length(last(histories[hi])))
+
+# ╔═╡ b1cff6c5-b225-4083-901a-3285cec59043
+begin
+	plot()
+	mycontour!(f)
+	fragment = last(histories[hi])[1:k]
+	plot!(first.(fragment), last.(fragment), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label=nothing)
+	xk = last(histories[hi])[k]
+	Hk = hessian(f, xk)
+	gk = first(gradient(f, xk))
+	fk = f(xk)
+	function q(x)
+		dx = x-xk
+		return 1/2 * dot(dx, Hk*dx) + dot(gk, dx) + fk
+	end
+	mycontour!(q, color="blue")
+end
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
 BenchmarkTools = "~1.5.0"
 Plots = "~1.40.5"
+PlutoUI = "~0.7.59"
 Zygote = "~0.6.70"
 """
 
@@ -122,7 +172,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.5"
 manifest_format = "2.0"
-project_hash = "17c057bc3a930dd23e8cf2ffa18d3dd8062cc0af"
+project_hash = "647b80ee7c31ff63c840c5444b321f49db3b3e74"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -134,6 +184,12 @@ weakdeps = ["ChainRulesCore", "Test"]
     [deps.AbstractFFTs.extensions]
     AbstractFFTsChainRulesCoreExt = "ChainRulesCore"
     AbstractFFTsTestExt = "Test"
+
+[[deps.AbstractPlutoDingetjes]]
+deps = ["Pkg"]
+git-tree-sha1 = "6e1d2a35f2f90a4bc7c2ed98079b2ba09c35b83a"
+uuid = "6e696c72-6542-2067-7265-42206c756150"
+version = "1.3.2"
 
 [[deps.Adapt]]
 deps = ["LinearAlgebra", "Requires"]
@@ -495,6 +551,24 @@ git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
 version = "2.8.1+1"
 
+[[deps.Hyperscript]]
+deps = ["Test"]
+git-tree-sha1 = "179267cfa5e712760cd43dcae385d7ea90cc25a4"
+uuid = "47d2ed2b-36de-50cf-bf87-49c2cf4b8b91"
+version = "0.0.5"
+
+[[deps.HypertextLiteral]]
+deps = ["Tricks"]
+git-tree-sha1 = "7134810b1afce04bbc1045ca1985fbe81ce17653"
+uuid = "ac1192a8-f4b3-4bfe-ba22-af5b92cd3ab2"
+version = "0.9.5"
+
+[[deps.IOCapture]]
+deps = ["Logging", "Random"]
+git-tree-sha1 = "b6d6bfdd7ce25b0f9b2f6b3dd56b2673a66c8770"
+uuid = "b5f81e59-6552-4d32-b1f0-c071b021bf89"
+version = "0.2.5"
+
 [[deps.IRTools]]
 deps = ["InteractiveUtils", "MacroTools"]
 git-tree-sha1 = "950c3717af761bc3ff906c2e8e52bd83390b6ec2"
@@ -710,6 +784,11 @@ git-tree-sha1 = "c1dd6d7978c12545b4179fb6153b9250c96b0075"
 uuid = "e6f89c97-d47a-5376-807f-9c37f3926c36"
 version = "1.0.3"
 
+[[deps.MIMEs]]
+git-tree-sha1 = "65f28ad4b594aebe22157d6fac869786a255b7eb"
+uuid = "6c6e2e6c-3030-632d-7369-2d6c69616d65"
+version = "0.1.4"
+
 [[deps.MacroTools]]
 deps = ["Markdown", "Random"]
 git-tree-sha1 = "2fa9ee3e63fd3a4f7a9a4f4744a52f4856de82df"
@@ -868,6 +947,12 @@ version = "1.40.5"
     IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
     ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
     Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+
+[[deps.PlutoUI]]
+deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
+git-tree-sha1 = "ab55ee1510ad2af0ff674dbcced5e94921f867a9"
+uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+version = "0.7.59"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -1077,6 +1162,11 @@ uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 git-tree-sha1 = "e84b3a11b9bece70d14cce63406bbc79ed3464d2"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
 version = "0.11.2"
+
+[[deps.Tricks]]
+git-tree-sha1 = "7822b97e99a1672bfb1b49b668a6d46d58d8cbcb"
+uuid = "410a4b4d-49e4-4fbc-ab6d-cb71b17b3775"
+version = "0.1.9"
 
 [[deps.URIs]]
 git-tree-sha1 = "67db6cc7b3821e19ebe75791a9dd19c9b1188f2b"
@@ -1456,7 +1546,12 @@ version = "1.4.1+1"
 # ╠═bbf8672f-a687-46b2-8640-5aa77f106f75
 # ╠═34c9123a-2446-43ce-b278-9a7005c90afa
 # ╠═0218df75-241d-497d-af1c-e27bfc18bf42
+# ╟─45d132bb-5df2-4f9c-8abd-c0053c0f2a4a
 # ╠═8bfb549c-fa2f-45f5-82d6-2523fdb2e2c8
 # ╠═1b0bdff9-faa0-4438-8b08-8750e6802593
+# ╟─006aa7c0-8b1e-4461-9050-044ff4a30aa0
+# ╠═c273b06b-4df8-45f7-be16-85a936fd475b
+# ╠═741d9daf-9b7d-4704-a6e3-6bdd8813d785
+# ╠═b1cff6c5-b225-4083-901a-3285cec59043
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
