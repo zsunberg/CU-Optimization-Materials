@@ -21,37 +21,42 @@ begin
 	using LinearAlgebra
 	using Distributions
 	using PlutoUI
+	using Printf
 end
 
 # ╔═╡ e586210a-de15-4675-bf06-57528f355f43
-get_quad(A) = x -> dot(x, A*x)
-
-# ╔═╡ fa2291b5-e5d2-4720-8f71-7da496a2b620
-booth(x) = (x[1]+2x[2]-7/10)^2 + (2x[1]+x[2]-5/10)^2
-
-# ╔═╡ 67a3a583-5b5c-4f3d-899f-6c8d1e80826e
-rosenbrock(x; a=1, b=5) = (a-x[1])^2 + b*(x[2] - x[1]^2)^2
-
-# ╔═╡ d97416cd-cfd6-47ea-a0ba-9b1cf4e74c13
-A = diagm([1,1])
+begin
+	get_quad(A) = x -> dot(x, A*x)
+	A = diagm([1,1])
+	booth(x) = (x[1]+2x[2]-7/10)^2 + (2x[1]+x[2]-5/10)^2
+	rosenbrock(x; a=1, b=5) = (a-x[1])^2 + b*(x[2] - x[1]^2)^2
+	function ackley(x; a=20, b=0.2, c=2π)
+		d = length(x)
+		return -a*exp(-b*sqrt(sum(x.^2)/d)) - exp(sum(cos.(c*xi) for xi in x)/d) + a + exp(1)
+	end
+	jones(x) = x[1]^4 + x[2]^4 - 4*x[1]^3 - 3*x[2]^3 + 2*x[1]^2 + 2*x[1]*x[2]
+end
 
 # ╔═╡ 7c9242be-9924-4dcb-9e10-ccfb78463131
-f = rosenbrock
+f(x) = ackley(x, c=3pi)
+# f = jones
 
 # ╔═╡ 00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
-mycontour!(f, args...; kwargs...) = contour!(range(-10, 10, 500), range(-10, 10, 500), (x, y)->f([x, y]), args...;  levels=[1,2,3,5,10,20,50,100], kwargs...)
+mycontour!(f, args...; kwargs...) = contour!(range(-4, 4, 500), range(-4, 4, 500), (x, y)->f([x, y]), args...;  levels=-10:20, kwargs...)
 
 # ╔═╡ ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
 begin
 	plot();
-	mycontour!(f, xlim=(-2, 2), ylim=(-2, 2))
+	mycontour!(f, ylim=(-2, 3.5), aspect_ratio=1)
 end
 
 # ╔═╡ 6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
-x0 = [-1.0, 2.0]
-
-# ╔═╡ 20abece4-5d04-4076-9a4e-ca79f4683d51
-f(x0)
+begin
+	x0 = [-1.0, 2.5]
+	k_max = 100
+	D0 = MvNormal(x0, diagm([10,10]))
+	m = 50
+end
 
 # ╔═╡ 142982a3-9bcc-4d5b-ac41-4e8f534af60b
 function simulated_annealing(f, x, T, t, k_max)
@@ -75,57 +80,148 @@ function simulated_annealing(f, x, T, t, k_max)
 	return x_best, history_tried, history_accepted
 end
 
+# ╔═╡ bc77350d-0333-413b-a42a-d5ccfad6a739
+t(k) = exp(-0.01*k)
+
 # ╔═╡ 34c9123a-2446-43ce-b278-9a7005c90afa
-x_best, history_tried, history_accepted = simulated_annealing(f, x0, MvNormal([1 0; 0 1]), k->100/k, 100)
+x_best, history_tried, history_accepted = simulated_annealing(f, x0, MvNormal([1 0; 0 1]), t, k_max)
 
 # ╔═╡ 0218df75-241d-497d-af1c-e27bfc18bf42
 begin
 	plot()
 	mycontour!(f)
-	plot!(first.(history_tried), last.(history_tried), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, line=nothing, label="Tried")
-	plot!(first.(history_accepted), last.(history_accepted), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label="Accepted")
-	plot!()
+	plot!(first.(history_tried), last.(history_tried), marker=true, line=nothing, label="Tried")
+	plot!(first.(history_accepted), last.(history_accepted), marker=true, label="Accepted")
+	plot!([first(x_best)], [last(x_best)], marker=true, label="Best")
+	plot!(ylim=(-2,3.5), aspect_ratio=1)
 end
 
-# ╔═╡ 006aa7c0-8b1e-4461-9050-044ff4a30aa0
+# ╔═╡ 6dc83278-598e-4dbf-ab18-2e5e56902266
 md"""
-## Visualization
+# Cross Entropy and Population
 """
 
+# ╔═╡ 04ad221d-fbe7-45e2-8cdf-774e5411f9b7
+function cross_entropy_method(f, P; k_max=50, m=100, m_elite=10)
+	sample_history = []
+	for k in 1 : k_max
+		samples = rand(P, m)
+		push!(sample_history, samples)
+		order = sortperm([f(samples[:,i]) for i in 1:m])
+		P = fit(typeof(P), samples[:,order[1:m_elite]])
+	end
+	return mean(P), sample_history
+end
+
+# ╔═╡ d8c6b09c-4d85-415b-a3ce-a780c6115114
+x_mean, sample_history = cross_entropy_method(f, D0, k_max=k_max, m=m, m_elite=div(m, 5));
+
+# ╔═╡ 51264e14-ad8a-42e6-808a-c597a33c4a9f
+begin
+	mutable struct Particle
+		x::Vector{Float64}
+		v::Vector{Float64}
+		x_best::Vector{Float64}
+	end
+	
+	Particle(x, v) = Particle(x, v, x)
+	
+	function particle_swarm_optimization(f, population; k_max=100, w=1, c1=1, c2=1)
+		n = length(population[1].x)
+		x_best, y_best = copy(population[1].x_best), Inf
+		population_history = [deepcopy(population)]
+		for P in population
+			y = f(P.x)
+			if y < y_best; x_best[:], y_best = P.x, y; end
+		end
+		for k in 1 : k_max
+			for P in population
+				r1, r2 = rand(n), rand(n)
+				# r1, r2 = 1, 1
+				P.x += P.v
+				P.v = w*P.v + c1*r1.*(P.x_best - P.x) +
+				c2*r2.*(x_best - P.x)
+				y = f(P.x)
+				if y < y_best; x_best[:], y_best = P.x, y; end
+				if y < f(P.x_best); P.x_best[:] = P.x; end
+			end
+			push!(population_history, deepcopy(population))
+		end
+		return population, population_history
+	end
+end
+
+# ╔═╡ 59d9b620-6c9e-4815-9866-cbf0b2df05f1
+begin
+	pso_pop = [Particle(rand(D0), randn(2)) for i in 1:50]
+	_, pso_history = particle_swarm_optimization(f, pso_pop, k_max=k_max, w=0.8)
+end
+
+# ╔═╡ d064876f-1e50-4f64-a6c4-73f6a3bee65f
+function firefly(f, population; k_max=100, β=1, α=0.1, brightness=r->exp(-r^2))
+	m = length(population[1])
+	N = MvNormal(Matrix(1.0I, m, m))
+	population_history = [deepcopy(population)]
+	for k in 1 : k_max
+		for a in population, b in population
+			if f(b) < f(a)
+				r = norm(b-a)
+				a[:] += β*brightness(r)*(b-a) + α*rand(N)
+			end
+		end
+		push!(population_history, deepcopy(population))
+	end
+	return population[argmin([f(x) for x in population])], population_history
+end
+
+# ╔═╡ b382e002-0e56-4419-a65f-ea13296f3023
+begin
+	ff_pop = [rand(D0) for _ in 1:m]
+	ff_best, ff_history = firefly(f, ff_pop)
+end
+
 # ╔═╡ 0919d93f-3592-4edd-a3ff-f0eaae13060e
-@bind k Slider(1:length(history_tried))
+@bind k Slider(1:k_max)
 
 # ╔═╡ 90e35e88-800f-4ad0-89b7-31d2e448b037
 begin
-	plot()
+	plot(title="Temperature = $(@sprintf("%.2f",t(k)))")
 	mycontour!(f)
 	plot!(first.(history_tried[1:k]), last.(history_tried[1:k]), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, line=nothing, label="Tried")
 	plot!(first.(history_accepted[1:k]), last.(history_accepted[1:k]), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label="Accepted")
 	plot!()
+	nothing
 end
 
-# ╔═╡ b1cff6c5-b225-4083-901a-3285cec59043
+# ╔═╡ 58628003-0347-49ea-b66b-254887fba3ae
 begin
-	plot()
+	plot(title="Cross Entropy")
 	mycontour!(f)
-	fragment = history[1:k]
-	xhist = getindex.(fragment, :x)
-	plot!(first.(xhist), last.(xhist), marker=true, label=nothing)
-	delta = last(fragment).δ
-	xk = last(fragment).x
-	xp = last(fragment).xp
-	Hk = hessian(f, xk)
-	gk = first(gradient(f, xk))
-	fk = f(xk)
-	function q(x)
-		dx = x-xk
-		return 1/2 * dot(dx, Hk*dx) + dot(gk, dx) + fk
-	end
-	circx = map(t -> xk[1] + delta * cos(t), 0:0.01:2*pi)
-	circy = map(t -> xk[2] + delta * sin(t), 0:0.01:2*pi)
-	plot!(circx, circy, label=nothing)
-	plot!([xp[1]], [xp[2]], marker=true, label=nothing)
-	mycontour!(q, color="blue",  xlim=(-3,3), ylim=(-2.5, 2.5), colorbar=nothing, aspect_ratio=1)
+	samples = sample_history[k]
+	plot!(samples[1,:], samples[2,:], marker=true, line=false, label=nothing)
+	plot!(ylim=(-2,3.5), aspect_ratio=1)
+	# nothing
+end
+
+# ╔═╡ 0f7d8563-b0c5-4097-ab40-ce51eb496688
+begin
+	plot(title="Particle Swarm")
+	mycontour!(f)
+	k_pop = pso_history[k]
+	xs, ys = [p.x[1] for p in k_pop], [p.x[2] for p in k_pop]
+	us, vs = [p.v[1] for p in k_pop], [p.v[2] for p in k_pop]
+	quiver!(xs, ys, quiver=(us, vs))
+	plot!(ylim=(-2,3.5), aspect_ratio=1)
+end
+
+# ╔═╡ 70a5b3ab-677e-458b-afab-7ba81a4ce482
+begin
+	plot(title="Firefly")
+	mycontour!(f)
+	k_ff_pop = ff_history[k]
+	plot!(first.(k_ff_pop), last.(k_ff_pop), marker=true, line=false, label=nothing)
+	plot!(ylim=(-2,3.5), aspect_ratio=1)
+	# nothing
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -135,6 +231,7 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
@@ -150,7 +247,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.10.5"
 manifest_format = "2.0"
-project_hash = "aa40d8e909e7c753541232e6330ab61dde4370dd"
+project_hash = "fb9b75e862916370377d8abe9eef5471b22fbce5"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -1574,20 +1671,25 @@ version = "1.4.1+1"
 # ╔═╡ Cell order:
 # ╠═881fd396-6f92-11ef-37f7-19f89b7f2521
 # ╠═e586210a-de15-4675-bf06-57528f355f43
-# ╠═fa2291b5-e5d2-4720-8f71-7da496a2b620
-# ╠═67a3a583-5b5c-4f3d-899f-6c8d1e80826e
-# ╠═d97416cd-cfd6-47ea-a0ba-9b1cf4e74c13
 # ╠═7c9242be-9924-4dcb-9e10-ccfb78463131
 # ╠═00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
 # ╠═ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
 # ╠═6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
-# ╠═20abece4-5d04-4076-9a4e-ca79f4683d51
 # ╠═142982a3-9bcc-4d5b-ac41-4e8f534af60b
+# ╠═bc77350d-0333-413b-a42a-d5ccfad6a739
 # ╠═34c9123a-2446-43ce-b278-9a7005c90afa
 # ╠═0218df75-241d-497d-af1c-e27bfc18bf42
-# ╟─006aa7c0-8b1e-4461-9050-044ff4a30aa0
-# ╠═0919d93f-3592-4edd-a3ff-f0eaae13060e
 # ╠═90e35e88-800f-4ad0-89b7-31d2e448b037
-# ╠═b1cff6c5-b225-4083-901a-3285cec59043
+# ╟─6dc83278-598e-4dbf-ab18-2e5e56902266
+# ╟─04ad221d-fbe7-45e2-8cdf-774e5411f9b7
+# ╠═d8c6b09c-4d85-415b-a3ce-a780c6115114
+# ╟─51264e14-ad8a-42e6-808a-c597a33c4a9f
+# ╠═59d9b620-6c9e-4815-9866-cbf0b2df05f1
+# ╟─d064876f-1e50-4f64-a6c4-73f6a3bee65f
+# ╠═b382e002-0e56-4419-a65f-ea13296f3023
+# ╠═0919d93f-3592-4edd-a3ff-f0eaae13060e
+# ╟─58628003-0347-49ea-b66b-254887fba3ae
+# ╟─0f7d8563-b0c5-4097-ab40-ce51eb496688
+# ╟─70a5b3ab-677e-458b-afab-7ba81a4ce482
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
