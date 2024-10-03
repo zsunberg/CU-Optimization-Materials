@@ -38,8 +38,9 @@ begin
 end
 
 # ╔═╡ 7c9242be-9924-4dcb-9e10-ccfb78463131
-f(x) = ackley(x, c=3pi)
-# f = jones
+# f(x) = ackley(x, c=3pi)
+f = jones
+# f = rosenbrock
 
 # ╔═╡ 00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
 mycontour!(f, args...; kwargs...) = contour!(range(-4, 4, 500), range(-4, 4, 500), (x, y)->f([x, y]), args...;  levels=-10:20, kwargs...)
@@ -200,7 +201,7 @@ begin
 	samples = sample_history[k]
 	plot!(samples[1,:], samples[2,:], marker=true, line=false, label=nothing)
 	plot!(ylim=(-2,3.5), aspect_ratio=1)
-	# nothing
+	nothing
 end
 
 # ╔═╡ 0f7d8563-b0c5-4097-ab40-ce51eb496688
