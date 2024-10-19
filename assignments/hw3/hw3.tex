@@ -1,0 +1,64 @@
+\documentclass{article}
+\usepackage{fullpage,amsmath,amsthm,graphicx,enumitem}
+\usepackage{multicol}
+\usepackage{booktabs}
+\usepackage{hyperref}
+\usepackage{tikz}
+
+\theoremstyle{definition}
+\newtheorem{thm}{Theorem}
+\newtheorem{question}[thm]{Question}
+\newenvironment{solution}{\noindent\textit{Solution:}}{}
+
+\title{ASEN 6519: Optimization: Applications and Algorithms\\
+       Homework 3}
+
+\begin{document}
+
+\maketitle
+
+\begin{question}(Derivative-free optimization)
+
+    \begin{enumerate}[label=\alph*)]
+        \item Implement two derivative-free optimization algorithms. One of the algorithms can be copied from class notebooks or the book, the other should be implemented mostly from scratch (you may consult the book or other sources).
+        \item Use both algorithms to optimize the following modified "six-hump camel" function:
+        \begin{equation}
+            f(x,y) = \left(4 - 2.1x^2 + \frac{x^4}{3}\right)x^2 + xy + \left(-4 + 4y^2\right)y^2 + 0.1y
+        \end{equation}
+        \item Choose two performance criteria and compare the algorithms with respect to these criteria with a brief (1-2 paragraph) explanation of the performance differences. Examples of performance criteria include number of function evaluations, accuracy of the solution, average value of the local solution is found, fraction of times the global minimum (vs a local minimum) is found, or runtime.
+    \end{enumerate}
+\end{question}
+
+\begin{question}(Penalty method)
+
+    Solve the following constrained constrained version of the problem above:
+    \begin{equation}
+        \begin{aligned}
+            \min_{x,y} \quad & f(x,y) \\
+            \text{s.t.} \quad & y \geq x^3 \\
+        \end{aligned}
+    \end{equation}
+    by using the penalty method and one of the algorithms mentioned above.
+\end{question}
+
+\begin{question}(Basic optimal control)
+\begin{enumerate}[label=\alph*)]
+    \item Formulate the following as a constrained optimization problem:
+    
+    A car traveling at 30m/s is approaching an obstacle on the right side of a 4m-wide road. The car controller chooses the steering angle $u$ between -0.1 and 0.1 radians every $\Delta t = 0.2$ s and plans 2 s into the future. The dynamics of the car are:
+    \begin{equation}
+        \begin{aligned}
+            x_{k+1} &= x_k + 30 \, \Delta t \\
+            y_{k+1} &= y_k + 30 \, \Delta t \, \sin(u) \\
+        \end{aligned}  
+    \end{equation}
+    where $x$ is the distance along the road and $y$ is the transverse position within the road.
+    The obstacle requires that the car deviates 1m to the left of the center of the road by the time it has traveled 30m. The objective is to stay as close to the center of the road as possible.
+
+    \item Solve this problem using one of the algorithms implemented in this homework or the previous homework, modified to appropriately handle the constraint. Plot the $x$ and $y$ position of the car at each time step.
+
+    Hint: For the objective I used the sum of the square of the deviation from the middle of the road as an objective. To solve, I used the barrier function method with a Newton-based line search and was able to achieve an objective value of slightly more than 5.16 m$^2$.
+    \end{enumerate}
+\end{question}
+
+\end{document}
