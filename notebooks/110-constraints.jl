@@ -19,143 +19,80 @@ begin
 	using Zygote
 	using Plots
 	using LinearAlgebra
-	using BenchmarkTools
+	using Distributions
 	using PlutoUI
+	using Printf
 end
+
+# ╔═╡ ecfe9598-8626-4101-bad0-51df09e19f1a
+mycontour!(f, args...; kwargs...) = contour!(range(-2, 2, 500), range(-2, 2, 500), (x, y)->f([x, y]), args...;  levels=0:10, kwargs...)
+
+# ╔═╡ 111c0e28-dd2a-4acd-ae8f-c5eb97d34553
+A = [2 -0.5; -0.5 1]
+
+# ╔═╡ 7691b1f7-e8f8-4f49-8b78-4c93bfb9ede9
+f(x) = dot(x, A*x)
 
 # ╔═╡ e586210a-de15-4675-bf06-57528f355f43
-get_quad(A) = x -> dot(x, A*x)
-
-# ╔═╡ fa2291b5-e5d2-4720-8f71-7da496a2b620
-booth(x) = (x[1]+2x[2]-7/10)^2 + (2x[1]+x[2]-5/10)^2
-
-# ╔═╡ 67a3a583-5b5c-4f3d-899f-6c8d1e80826e
-rosenbrock(x; a=1, b=5) = (a-x[1])^2 + b*(x[2] - x[1]^2)^2
-
-# ╔═╡ d97416cd-cfd6-47ea-a0ba-9b1cf4e74c13
-A = diagm([1,1])
-
-# ╔═╡ 7c9242be-9924-4dcb-9e10-ccfb78463131
-f = rosenbrock
-
-# ╔═╡ 00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
-mycontour!(f, args...; kwargs...) = contour!(range(-10, 10, 500), range(-10, 10, 500), (x, y)->f([x, y]), args...;  levels=[1,2,3,5,10,20,50,100], kwargs...)
-
-# ╔═╡ ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
 begin
-	plot();
-	mycontour!(f, xlim=(-2, 2), ylim=(-2, 2))
-end
-
-# ╔═╡ 6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
-x0 = [-1.0, 2.0]
-
-# ╔═╡ 142982a3-9bcc-4d5b-ac41-4e8f534af60b
-function dogleg_trust_region_search(f, x0=[0.0, 0.0];
-							 δ=1.0, η1=0.25, η2=0.5, γ1=0.5, γ2=2.0, n=100, ϵg=1e-4)
-	x = float(x0)
-	history = []
-	y = f(x)
-	for _ in 1:n
-		g = first(gradient(f, x))
-		if norm(g) < ϵg
-			break
-		end
-		H = hessian(f, x)
-
-		if isposdef(H) # use dogleg
-			xH = x - H\g
-			if norm(xH - x) <= δ # Case 1 
-				xp = xH
-			else
-				xC = x - dot(g, g)/dot(g, H*g)*g
-				if norm(xC - x) >= δ # Case 2
-					xp = x + (xC - x)*δ/norm(xC-x)
-				else # Case 3
-					a = norm(xH - xC)^2
-					b = 2*sum((xC-x).*(xH-xC))
-					c = norm(xC - x)^2 - δ^2
-					tauH = (-b + sqrt(b^2-4*a*c))/(2*a)
-					xp = xC + tauH*(xH-xC)
-				end
-			end
-		else # just follow the gradient to the trust region boundary
-			xp = x - δ * g / norm(g)
-		end
-
-		push!(history, (; x, y, g, H, δ, xp))
-
-		# Adjust trust region
-		yhat = y + dot(g, (xp-x)) + dot(xp-x, H*(xp-x))
-		yp = f(xp)
-		r = (y - yp) / (y - yhat)
-		if yp >= y || r < η1
-			δ *= γ1
-		else
-			x, y = xp, yp
-			if r > η2
-				δ *= γ2
-			end
-		end
-	end
-	return history
-end
-
-# ╔═╡ 34c9123a-2446-43ce-b278-9a7005c90afa
-history = dogleg_trust_region_search(f, x0)
-
-# ╔═╡ 0218df75-241d-497d-af1c-e27bfc18bf42
-begin
-	plot()
+	plot(xlim=(-2,2), ylim=(-2,2), aspect_ratio=1)
 	mycontour!(f)
-	xhistory = getindex.(history, :x)
-	plot!(first.(xhistory), last.(xhistory), xlim=(-2,2), ylim=(-2.5, 2.5), marker=true, label=nothing)
-	plot!()
 end
 
-# ╔═╡ 006aa7c0-8b1e-4461-9050-044ff4a30aa0
-md"""
-## Visualization
-"""
+# ╔═╡ 2df4aab8-89b9-473e-9353-79ad976d48ab
+w = [3,1]; b = 2;
 
-# ╔═╡ 0919d93f-3592-4edd-a3ff-f0eaae13060e
-@bind k Slider(1:length(history))
-
-# ╔═╡ b1cff6c5-b225-4083-901a-3285cec59043
+# ╔═╡ 34c97f40-a22f-4a84-aa8d-869a6d88779f
 begin
-	plot()
+	plot(xlim=(-2,2), ylim=(-2,2), aspect_ratio=1)
 	mycontour!(f)
-	fragment = history[1:k]
-	xhist = getindex.(fragment, :x)
-	plot!(first.(xhist), last.(xhist), marker=true, label=nothing)
-	delta = last(fragment).δ
-	xk = last(fragment).x
-	xp = last(fragment).xp
-	Hk = hessian(f, xk)
-	gk = first(gradient(f, xk))
-	fk = f(xk)
-	function q(x)
-		dx = x-xk
-		return 1/2 * dot(dx, Hk*dx) + dot(gk, dx) + fk
+	plot!(x->-w[1]/w[2]*x + b/w[2], label="constraint")
+end
+
+# ╔═╡ 7245cd8a-2a67-434a-ab90-0e7c95f50c7b
+# g(x) = -dot(w, x) + b
+g(x) = [-dot(w, x) + b, -dot([1,3], x) +b]
+
+# ╔═╡ a88bb63f-a6f4-4f2e-9ac0-cf6c7e5cec00
+begin
+	struct LogBarrier{G <: Function} <: Function
+		g::G
 	end
-	circx = map(t -> xk[1] + delta * cos(t), 0:0.01:2*pi)
-	circy = map(t -> xk[2] + delta * sin(t), 0:0.01:2*pi)
-	plot!(circx, circy, label=nothing)
-	plot!([xp[1]], [xp[2]], marker=true, label=nothing)
-	mycontour!(q, color="blue",  xlim=(-3,3), ylim=(-2.5, 2.5), colorbar=nothing, aspect_ratio=1)
+	
+	function (b::LogBarrier)(x)
+		return -sum(min.(0, log.(- min.(0, g(x)))))
+		# return -sum(log.(-min.(0, g(x))))
+	end
+end
+
+# ╔═╡ 934d2197-df7d-4fb8-95ac-a376d6c48161
+p = LogBarrier(g)
+
+# ╔═╡ a2d9826f-3fb0-4306-a802-70478f1fcd9b
+p([0,0])
+
+# ╔═╡ e335b114-713a-4a10-b3d8-26ce1d65b4df
+@bind ρ Slider(vcat([0], 2.0 .^ (-2:5)))
+
+# ╔═╡ e4cec4a1-027e-4aca-a3c1-4d189e8d91c3
+begin
+	plot(xlim=(-2,2), ylim=(-2,2), aspect_ratio=1)
+	mycontour!(f)
+	mycontour!(x-> f(x) + p(x)/ρ, title="ρ = $ρ")
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
-BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
-BenchmarkTools = "~1.5.0"
+Distributions = "~0.25.112"
 Plots = "~1.40.5"
 PlutoUI = "~0.7.59"
 Zygote = "~0.6.70"
@@ -165,9 +102,9 @@ Zygote = "~0.6.70"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.5"
+julia_version = "1.11.1"
 manifest_format = "2.0"
-project_hash = "647b80ee7c31ff63c840c5444b321f49db3b3e74"
+project_hash = "1d32f5e1a1cc5e8de64459e900a710015994d7bf"
 
 [[deps.AbstractFFTs]]
 deps = ["LinearAlgebra"]
@@ -198,21 +135,23 @@ version = "4.0.4"
     [deps.Adapt.weakdeps]
     StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
+[[deps.AliasTables]]
+deps = ["PtrArrays", "Random"]
+git-tree-sha1 = "9876e1e164b144ca45e9e3198d0b689cadfed9ff"
+uuid = "66dad0bd-aa9a-41b7-9441-69ab47430ed8"
+version = "1.1.3"
+
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
-version = "1.1.1"
+version = "1.1.2"
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+version = "1.11.0"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
-
-[[deps.BenchmarkTools]]
-deps = ["JSON", "Logging", "Printf", "Profile", "Statistics", "UUIDs"]
-git-tree-sha1 = "f1dff6729bc61f4d49e140da1af55dcd1ac97b2f"
-uuid = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-version = "1.5.0"
+version = "1.11.0"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
@@ -232,21 +171,21 @@ version = "0.5.0"
 
 [[deps.Cairo_jll]]
 deps = ["Artifacts", "Bzip2_jll", "CompilerSupportLibraries_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "JLLWrappers", "LZO_jll", "Libdl", "Pixman_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "a2f1c8c668c8e3cb4cca4e57a8efdb09067bb3fd"
+git-tree-sha1 = "009060c9a6168704143100f36ab08f06c2af4642"
 uuid = "83423d85-b0ee-5818-9007-b63ccbeb887a"
-version = "1.18.0+2"
+version = "1.18.2+1"
 
 [[deps.ChainRules]]
 deps = ["Adapt", "ChainRulesCore", "Compat", "Distributed", "GPUArraysCore", "IrrationalConstants", "LinearAlgebra", "Random", "RealDot", "SparseArrays", "SparseInverseSubset", "Statistics", "StructArrays", "SuiteSparse"]
-git-tree-sha1 = "227985d885b4dbce5e18a96f9326ea1e836e5a03"
+git-tree-sha1 = "be227d253d132a6d57f9ccf5f67c0fb6488afd87"
 uuid = "082447d4-558c-5d27-93f4-14fc19e9eca2"
-version = "1.69.0"
+version = "1.71.0"
 
 [[deps.ChainRulesCore]]
 deps = ["Compat", "LinearAlgebra"]
-git-tree-sha1 = "71acdbf594aab5bbb2cec89b208c41b4c411e49f"
+git-tree-sha1 = "3e4b134270b372f2ed4d4d0e936aabaefc1802bc"
 uuid = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
-version = "1.24.0"
+version = "1.25.0"
 weakdeps = ["SparseArrays"]
 
     [deps.ChainRulesCore.extensions]
@@ -314,17 +253,18 @@ uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.4.2"
 
 [[deps.ConstructionBase]]
-deps = ["LinearAlgebra"]
-git-tree-sha1 = "d8a9c0b6ac2d9081bf76324b39c78ca3ce4f0c98"
+git-tree-sha1 = "76219f1ed5771adbb096743bff43fb5fdd4c1157"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
-version = "1.5.6"
+version = "1.5.8"
 
     [deps.ConstructionBase.extensions]
     ConstructionBaseIntervalSetsExt = "IntervalSets"
+    ConstructionBaseLinearAlgebraExt = "LinearAlgebra"
     ConstructionBaseStaticArraysExt = "StaticArrays"
 
     [deps.ConstructionBase.weakdeps]
     IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
+    LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
     StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
 [[deps.Contour]]
@@ -351,6 +291,7 @@ version = "1.0.0"
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+version = "1.11.0"
 
 [[deps.Dbus_jll]]
 deps = ["Artifacts", "Expat_jll", "JLLWrappers", "Libdl"]
@@ -379,6 +320,23 @@ version = "1.15.1"
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+version = "1.11.0"
+
+[[deps.Distributions]]
+deps = ["AliasTables", "FillArrays", "LinearAlgebra", "PDMats", "Printf", "QuadGK", "Random", "SpecialFunctions", "Statistics", "StatsAPI", "StatsBase", "StatsFuns"]
+git-tree-sha1 = "d7477ecdafb813ddee2ae727afa94e9dcb5f3fb0"
+uuid = "31c24e10-a181-5473-b8eb-7969acd0382f"
+version = "0.25.112"
+
+    [deps.Distributions.extensions]
+    DistributionsChainRulesCoreExt = "ChainRulesCore"
+    DistributionsDensityInterfaceExt = "DensityInterface"
+    DistributionsTestExt = "Test"
+
+    [deps.Distributions.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    DensityInterface = "b429d917-457f-4dbc-8f4c-0cc954292b1d"
+    Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
@@ -411,9 +369,9 @@ version = "2.6.2+0"
 
 [[deps.FFMPEG]]
 deps = ["FFMPEG_jll"]
-git-tree-sha1 = "b57e3acbe22f8484b4b5ff66a7499717fe1a9cc8"
+git-tree-sha1 = "53ebe7511fa11d33bec688a9178fac4e49eeee00"
 uuid = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
-version = "0.4.1"
+version = "0.4.2"
 
 [[deps.FFMPEG_jll]]
 deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
@@ -423,22 +381,19 @@ version = "4.4.4+1"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
+version = "1.11.0"
 
 [[deps.FillArrays]]
 deps = ["LinearAlgebra"]
-git-tree-sha1 = "fd0002c0b5362d7eb952450ad5eb742443340d6e"
+git-tree-sha1 = "6a70198746448456524cb442b8af316927ff3e1a"
 uuid = "1a297f60-69ca-5386-bcde-b61e274b549b"
-version = "1.12.0"
+version = "1.13.0"
+weakdeps = ["PDMats", "SparseArrays", "Statistics"]
 
     [deps.FillArrays.extensions]
     FillArraysPDMatsExt = "PDMats"
     FillArraysSparseArraysExt = "SparseArrays"
     FillArraysStatisticsExt = "Statistics"
-
-    [deps.FillArrays.weakdeps]
-    PDMats = "90014a1f-27ba-587c-ab20-58faa44d9150"
-    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [[deps.FixedPointNumbers]]
 deps = ["Statistics"]
@@ -500,16 +455,16 @@ uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
 version = "0.1.6"
 
 [[deps.GR]]
-deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Preferences", "Printf", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "p7zip_jll"]
-git-tree-sha1 = "3e527447a45901ea392fe12120783ad6ec222803"
+deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Preferences", "Printf", "Qt6Wayland_jll", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "p7zip_jll"]
+git-tree-sha1 = "ee28ddcd5517d54e417182fec3886e7412d3926f"
 uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-version = "0.73.6"
+version = "0.73.8"
 
 [[deps.GR_jll]]
 deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "FreeType2_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Qt6Base_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "182c478a179b267dd7a741b6f8f4c3e0803795d6"
+git-tree-sha1 = "f31929b9e67066bee48eec8b03c0df47d31a74b3"
 uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
-version = "0.73.6+0"
+version = "0.73.8+0"
 
 [[deps.Gettext_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Libiconv_jll", "Pkg", "XML2_jll"]
@@ -519,9 +474,9 @@ version = "0.21.0+0"
 
 [[deps.Glib_jll]]
 deps = ["Artifacts", "Gettext_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Libiconv_jll", "Libmount_jll", "PCRE2_jll", "Zlib_jll"]
-git-tree-sha1 = "7c82e6a6cd34e9d935e9aa4051b66c6ff3af59ba"
+git-tree-sha1 = "674ff0db93fffcd11a3573986e550d66cd4fd71f"
 uuid = "7746bdde-850d-59dc-9ae8-88ece973131d"
-version = "2.80.2+0"
+version = "2.80.5+0"
 
 [[deps.Graphite2_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -541,10 +496,16 @@ uuid = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 version = "1.10.8"
 
 [[deps.HarfBuzz_jll]]
-deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg"]
-git-tree-sha1 = "129acf094d168394e80ee1dc4bc06ec835e510a3"
+deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "Glib_jll", "Graphite2_jll", "JLLWrappers", "Libdl", "Libffi_jll"]
+git-tree-sha1 = "401e4f3f30f43af2c8478fc008da50096ea5240f"
 uuid = "2e76f6c2-a576-52d4-95c1-20adfe4de566"
-version = "2.8.1+1"
+version = "8.3.1+0"
+
+[[deps.HypergeometricFunctions]]
+deps = ["LinearAlgebra", "OpenLibm_jll", "SpecialFunctions"]
+git-tree-sha1 = "7c4195be1649ae622304031ed46a2f4df989f1eb"
+uuid = "34004b35-14d8-5ef3-9330-4cdb6864b03a"
+version = "0.3.24"
 
 [[deps.Hyperscript]]
 deps = ["Test"]
@@ -573,6 +534,7 @@ version = "0.4.14"
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+version = "1.11.0"
 
 [[deps.IrrationalConstants]]
 git-tree-sha1 = "630b497eafcc20001bba38a4651b327dcfc491d2"
@@ -592,9 +554,9 @@ version = "0.1.8"
 
 [[deps.JLLWrappers]]
 deps = ["Artifacts", "Preferences"]
-git-tree-sha1 = "7e5d6779a1e09a36db2a7b6cff50942a0a7d0fca"
+git-tree-sha1 = "be3dc50a92e5a386872a493a10050136d4703f9b"
 uuid = "692b3bcd-3c85-4b1f-b108-f13ce0eb3210"
-version = "1.5.0"
+version = "1.6.1"
 
 [[deps.JSON]]
 deps = ["Dates", "Mmap", "Parsers", "Unicode"]
@@ -604,9 +566,9 @@ version = "0.21.4"
 
 [[deps.JpegTurbo_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "c84a835e1a09b289ffcd2271bf2a337bbdda6637"
+git-tree-sha1 = "25ee0be4d43d0269027024d75a24c24d6c6e590c"
 uuid = "aacddb02-875f-59d6-b918-886e6ef4fbf8"
-version = "3.0.3+0"
+version = "3.0.4+0"
 
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -615,16 +577,16 @@ uuid = "c1c5ebd0-6772-5130-a774-d5fcae4a789d"
 version = "3.100.2+0"
 
 [[deps.LERC_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "bf36f528eec6634efc60d7ec062008f171071434"
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "36bdbc52f13a7d1dcb0f3cd694e01677a515655b"
 uuid = "88015f11-f218-50d7-93a8-a6af411a945d"
-version = "3.0.0+1"
+version = "4.0.0+0"
 
 [[deps.LLVM]]
 deps = ["CEnum", "LLVMExtra_jll", "Libdl", "Preferences", "Printf", "Requires", "Unicode"]
-git-tree-sha1 = "b351d72436ddecd27381a07c242ba27282a6c8a7"
+git-tree-sha1 = "4ad43cb0a4bb5e5b1506e1d1f48646d7e0c80363"
 uuid = "929cbde3-209d-540e-8aea-75f648917ca0"
-version = "9.0.0"
+version = "9.1.2"
 
     [deps.LLVM.extensions]
     BFloat16sExt = "BFloat16s"
@@ -634,26 +596,26 @@ version = "9.0.0"
 
 [[deps.LLVMExtra_jll]]
 deps = ["Artifacts", "JLLWrappers", "LazyArtifacts", "Libdl", "TOML"]
-git-tree-sha1 = "f42bec1e12f42ec251541f6d0482d520a4638b17"
+git-tree-sha1 = "05a8bd5a42309a9ec82f700876903abce1017dd3"
 uuid = "dad2f222-ce93-54a1-a47d-0025e8a3acab"
-version = "0.0.33+0"
+version = "0.0.34+0"
 
 [[deps.LLVMOpenMP_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "e16271d212accd09d52ee0ae98956b8a05c4b626"
+git-tree-sha1 = "78211fb6cbc872f77cad3fc0b6cf647d923f4929"
 uuid = "1d63c593-3942-5779-bab2-d838dc0a180e"
-version = "17.0.6+0"
+version = "18.1.7+0"
 
 [[deps.LZO_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "70c5da094887fd2cae843b8db33920bac4b6f07d"
+git-tree-sha1 = "854a9c268c43b77b0a27f22d7fab8d33cdb3a731"
 uuid = "dd4b983a-f0e5-5f8d-a1b7-129d4a5fb1ac"
-version = "2.10.2+0"
+version = "2.10.2+1"
 
 [[deps.LaTeXStrings]]
-git-tree-sha1 = "50901ebc375ed41dbf8058da26f9de442febbbec"
+git-tree-sha1 = "dda21b8cbd6a6c40d9d02a73230f9d70fed6918c"
 uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
-version = "1.3.1"
+version = "1.4.0"
 
 [[deps.Latexify]]
 deps = ["Format", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "OrderedCollections", "Requires"]
@@ -674,6 +636,7 @@ version = "0.16.5"
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
 uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
+version = "1.11.0"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -683,16 +646,17 @@ version = "0.6.4"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.4.0+0"
+version = "8.6.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "LibGit2_jll", "NetworkOptions", "Printf", "SHA"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
+version = "1.11.0"
 
 [[deps.LibGit2_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll"]
 uuid = "e37daf67-58a4-590a-8e99-b0245dd2ffc5"
-version = "1.6.4+0"
+version = "1.7.2+0"
 
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
@@ -701,6 +665,7 @@ version = "1.11.0+1"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+version = "1.11.0"
 
 [[deps.Libffi_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -740,9 +705,9 @@ version = "2.40.1+0"
 
 [[deps.Libtiff_jll]]
 deps = ["Artifacts", "JLLWrappers", "JpegTurbo_jll", "LERC_jll", "Libdl", "XZ_jll", "Zlib_jll", "Zstd_jll"]
-git-tree-sha1 = "2da088d113af58221c52828a80378e16be7d037a"
+git-tree-sha1 = "b404131d06f7886402758c9ce2214b636eb4d54a"
 uuid = "89763e89-9b03-5906-acba-b20f662cd828"
-version = "4.5.1+1"
+version = "4.7.0+0"
 
 [[deps.Libuuid_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -753,6 +718,7 @@ version = "2.40.1+0"
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+version = "1.11.0"
 
 [[deps.LogExpFunctions]]
 deps = ["DocStringExtensions", "IrrationalConstants", "LinearAlgebra"]
@@ -772,6 +738,7 @@ version = "0.3.28"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+version = "1.11.0"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
@@ -793,6 +760,7 @@ version = "0.5.13"
 [[deps.Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+version = "1.11.0"
 
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "NetworkOptions", "Random", "Sockets"]
@@ -803,7 +771,7 @@ version = "1.1.9"
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
-version = "2.28.2+1"
+version = "2.28.6+0"
 
 [[deps.Measures]]
 git-tree-sha1 = "c13304c81eec1ed3af7fc20e75fb6b26092a1102"
@@ -818,10 +786,11 @@ version = "1.2.0"
 
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
+version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2023.1.10"
+version = "2023.12.12"
 
 [[deps.NaNMath]]
 deps = ["OpenLibm_jll"]
@@ -842,7 +811,7 @@ version = "1.3.5+1"
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
-version = "0.3.23+4"
+version = "0.3.27+1"
 
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -857,9 +826,9 @@ version = "1.4.3"
 
 [[deps.OpenSSL_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "a028ee3cb5641cccc4c24e90c36b0a4f7707bdf5"
+git-tree-sha1 = "7493f61f55a6cce7325f197443aa80d32554ba10"
 uuid = "458c3c95-2e84-50aa-8efc-19380b2a3a95"
-version = "3.0.14+0"
+version = "3.0.15+1"
 
 [[deps.OpenSpecFun_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "Libdl", "Pkg"]
@@ -883,11 +852,17 @@ deps = ["Artifacts", "Libdl"]
 uuid = "efcefdf7-47ab-520b-bdef-62a2eaa19f15"
 version = "10.42.0+1"
 
+[[deps.PDMats]]
+deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
+git-tree-sha1 = "949347156c25054de2db3b166c52ac4728cbad65"
+uuid = "90014a1f-27ba-587c-ab20-58faa44d9150"
+version = "0.11.31"
+
 [[deps.Pango_jll]]
 deps = ["Artifacts", "Cairo_jll", "Fontconfig_jll", "FreeType2_jll", "FriBidi_jll", "Glib_jll", "HarfBuzz_jll", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "9dd97171646850ee607593965ce1f55063d8d3f9"
+git-tree-sha1 = "e127b609fb9ecba6f201ba7ab753d5a605d53801"
 uuid = "36c8627f-9965-5494-a995-c6b170f724f3"
-version = "1.54.0+0"
+version = "1.54.1+0"
 
 [[deps.Parsers]]
 deps = ["Dates", "PrecompileTools", "UUIDs"]
@@ -907,9 +882,13 @@ uuid = "30392449-352a-5448-841d-b1acce4e97dc"
 version = "0.43.4+0"
 
 [[deps.Pkg]]
-deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
+deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.10.0"
+version = "1.11.0"
+weakdeps = ["REPL"]
+
+    [deps.Pkg.extensions]
+    REPLExt = "REPL"
 
 [[deps.PlotThemes]]
 deps = ["PlotUtils", "Statistics"]
@@ -918,16 +897,16 @@ uuid = "ccf2f8ad-2431-5c83-bf29-c5338b663b6a"
 version = "3.2.0"
 
 [[deps.PlotUtils]]
-deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random", "Reexport", "Statistics"]
-git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
+deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random", "Reexport", "StableRNGs", "Statistics"]
+git-tree-sha1 = "650a022b2ce86c7dcfbdecf00f78afeeb20e5655"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
-version = "1.4.1"
+version = "1.4.2"
 
 [[deps.Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "JLFzf", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "PrecompileTools", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "RelocatableFolders", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "TOML", "UUIDs", "UnicodeFun", "UnitfulLatexify", "Unzip"]
-git-tree-sha1 = "082f0c4b70c202c37784ce4bfbc33c9f437685bf"
+git-tree-sha1 = "45470145863035bb124ca51b320ed35d071cc6c2"
 uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-version = "1.40.5"
+version = "1.40.8"
 
     [deps.Plots.extensions]
     FileIOExt = "FileIO"
@@ -945,9 +924,9 @@ version = "1.40.5"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
-git-tree-sha1 = "ab55ee1510ad2af0ff674dbcced5e94921f867a9"
+git-tree-sha1 = "eba4810d5e6a01f612b948c9fa94f905b49087b0"
 uuid = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-version = "0.7.59"
+version = "0.7.60"
 
 [[deps.PrecompileTools]]
 deps = ["Preferences"]
@@ -964,10 +943,12 @@ version = "1.4.3"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+version = "1.11.0"
 
-[[deps.Profile]]
-deps = ["Printf"]
-uuid = "9abbd945-dff8-562f-b5e8-e1ebf5ef1b79"
+[[deps.PtrArrays]]
+git-tree-sha1 = "77a42d78b6a92df47ab37e177b2deac405e1c88f"
+uuid = "43287f4e-b6f4-7ad1-bb20-aadabca52c3d"
+version = "1.2.1"
 
 [[deps.Qt6Base_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
@@ -975,13 +956,45 @@ git-tree-sha1 = "492601870742dcd38f233b23c3ec629628c1d724"
 uuid = "c0090381-4147-56d7-9ebc-da0b1113ec56"
 version = "6.7.1+1"
 
+[[deps.Qt6Declarative_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6ShaderTools_jll"]
+git-tree-sha1 = "e5dd466bf2569fe08c91a2cc29c1003f4797ac3b"
+uuid = "629bc702-f1f5-5709-abd5-49b8460ea067"
+version = "6.7.1+2"
+
+[[deps.Qt6ShaderTools_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll"]
+git-tree-sha1 = "1a180aeced866700d4bebc3120ea1451201f16bc"
+uuid = "ce943373-25bb-56aa-8eca-768745ed7b5a"
+version = "6.7.1+1"
+
+[[deps.Qt6Wayland_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6Declarative_jll"]
+git-tree-sha1 = "729927532d48cf79f49070341e1d918a65aba6b0"
+uuid = "e99dba38-086e-5de3-a5b1-6e4c66e897c3"
+version = "6.7.1+1"
+
+[[deps.QuadGK]]
+deps = ["DataStructures", "LinearAlgebra"]
+git-tree-sha1 = "cda3b045cf9ef07a08ad46731f5a3165e56cf3da"
+uuid = "1fd47b50-473d-5c70-9696-f719f8f3bcdc"
+version = "2.11.1"
+
+    [deps.QuadGK.extensions]
+    QuadGKEnzymeExt = "Enzyme"
+
+    [deps.QuadGK.weakdeps]
+    Enzyme = "7da242da-08ed-463a-9acd-ee780be4f1d9"
+
 [[deps.REPL]]
-deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
+deps = ["InteractiveUtils", "Markdown", "Sockets", "StyledStrings", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+version = "1.11.0"
 
 [[deps.Random]]
 deps = ["SHA"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+version = "1.11.0"
 
 [[deps.RealDot]]
 deps = ["LinearAlgebra"]
@@ -1018,6 +1031,18 @@ git-tree-sha1 = "838a3a4188e2ded87a4f9f184b4b0d78a1e91cb7"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "1.3.0"
 
+[[deps.Rmath]]
+deps = ["Random", "Rmath_jll"]
+git-tree-sha1 = "852bd0f55565a9e973fcfee83a84413270224dc4"
+uuid = "79098fc4-a85e-5d69-aa6a-4863f24498fa"
+version = "0.8.0"
+
+[[deps.Rmath_jll]]
+deps = ["Artifacts", "JLLWrappers", "Libdl"]
+git-tree-sha1 = "58cdd8fb2201a6267e1db87ff148dd6c1dbd8ad8"
+uuid = "f50d1b31-88e8-58de-be2c-1cc44531875f"
+version = "0.5.1+0"
+
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 version = "0.7.0"
@@ -1030,6 +1055,7 @@ version = "1.2.1"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+version = "1.11.0"
 
 [[deps.Showoff]]
 deps = ["Dates", "Grisu"]
@@ -1038,12 +1064,13 @@ uuid = "992d4aef-0814-514b-bc4d-f2e9a6c4116f"
 version = "1.0.3"
 
 [[deps.SimpleBufferStream]]
-git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
+git-tree-sha1 = "f305871d2f381d21527c770d4788c06c097c9bc1"
 uuid = "777ac1f9-54b0-4bf8-805c-2214025038e7"
-version = "1.1.0"
+version = "1.2.0"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
+version = "1.11.0"
 
 [[deps.SortingAlgorithms]]
 deps = ["DataStructures"]
@@ -1054,7 +1081,7 @@ version = "1.2.1"
 [[deps.SparseArrays]]
 deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-version = "1.10.0"
+version = "1.11.0"
 
 [[deps.SparseInverseSubset]]
 deps = ["LinearAlgebra", "SparseArrays", "SuiteSparse"]
@@ -1072,15 +1099,26 @@ weakdeps = ["ChainRulesCore"]
     [deps.SpecialFunctions.extensions]
     SpecialFunctionsChainRulesCoreExt = "ChainRulesCore"
 
+[[deps.StableRNGs]]
+deps = ["Random"]
+git-tree-sha1 = "83e6cce8324d49dfaf9ef059227f91ed4441a8e5"
+uuid = "860ef19b-820b-49d6-a774-d7a799459cd3"
+version = "1.0.2"
+
 [[deps.StaticArraysCore]]
 git-tree-sha1 = "192954ef1208c7019899fbf8049e717f92959682"
 uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 version = "1.4.3"
 
 [[deps.Statistics]]
-deps = ["LinearAlgebra", "SparseArrays"]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "ae3bb1eb3bba077cd276bc5cfc337cc65c3075c0"
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-version = "1.10.0"
+version = "1.11.1"
+weakdeps = ["SparseArrays"]
+
+    [deps.Statistics.extensions]
+    SparseArraysExt = ["SparseArrays"]
 
 [[deps.StatsAPI]]
 deps = ["LinearAlgebra"]
@@ -1093,6 +1131,20 @@ deps = ["DataAPI", "DataStructures", "LinearAlgebra", "LogExpFunctions", "Missin
 git-tree-sha1 = "5cf7606d6cef84b543b483848d4ae08ad9832b21"
 uuid = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 version = "0.34.3"
+
+[[deps.StatsFuns]]
+deps = ["HypergeometricFunctions", "IrrationalConstants", "LogExpFunctions", "Reexport", "Rmath", "SpecialFunctions"]
+git-tree-sha1 = "b423576adc27097764a90e163157bcfc9acf0f46"
+uuid = "4c63d2b9-4356-54db-8cca-17b64c39e42c"
+version = "1.3.2"
+
+    [deps.StatsFuns.extensions]
+    StatsFunsChainRulesCoreExt = "ChainRulesCore"
+    StatsFunsInverseFunctionsExt = "InverseFunctions"
+
+    [deps.StatsFuns.weakdeps]
+    ChainRulesCore = "d360d2e6-b24c-11e9-a2a3-2a2ae2dbcce4"
+    InverseFunctions = "3587e190-3f89-42d0-90ee-14403ec27112"
 
 [[deps.StructArrays]]
 deps = ["ConstructionBase", "DataAPI", "Tables"]
@@ -1112,6 +1164,10 @@ version = "0.6.18"
     SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
     StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 
+[[deps.StyledStrings]]
+uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
+version = "1.11.0"
+
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
 uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
@@ -1119,7 +1175,7 @@ uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 [[deps.SuiteSparse_jll]]
 deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-version = "7.2.1+1"
+version = "7.7.0+0"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -1152,11 +1208,12 @@ version = "0.1.1"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+version = "1.11.0"
 
 [[deps.TranscodingStreams]]
-git-tree-sha1 = "e84b3a11b9bece70d14cce63406bbc79ed3464d2"
+git-tree-sha1 = "0c45878dcfdcfa8480052b6ab162cdd138781742"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.11.2"
+version = "0.11.3"
 
 [[deps.Tricks]]
 git-tree-sha1 = "7822b97e99a1672bfb1b49b668a6d46d58d8cbcb"
@@ -1171,9 +1228,11 @@ version = "1.5.1"
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+version = "1.11.0"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+version = "1.11.0"
 
 [[deps.UnicodeFun]]
 deps = ["REPL"]
@@ -1393,15 +1452,15 @@ version = "1.2.13+1"
 
 [[deps.Zstd_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "e678132f07ddb5bfa46857f0d7620fb9be675d3b"
+git-tree-sha1 = "555d1076590a6cc2fdee2ef1469451f872d8b41b"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
-version = "1.5.6+0"
+version = "1.5.6+1"
 
 [[deps.Zygote]]
 deps = ["AbstractFFTs", "ChainRules", "ChainRulesCore", "DiffRules", "Distributed", "FillArrays", "ForwardDiff", "GPUArrays", "GPUArraysCore", "IRTools", "InteractiveUtils", "LinearAlgebra", "LogExpFunctions", "MacroTools", "NaNMath", "PrecompileTools", "Random", "Requires", "SparseArrays", "SpecialFunctions", "Statistics", "ZygoteRules"]
-git-tree-sha1 = "19c586905e78a26f7e4e97f81716057bd6b1bc54"
+git-tree-sha1 = "f816633be6dc5c0ed9ffedda157ecfda0b3b6a69"
 uuid = "e88e6eb3-aa80-5325-afca-941959d7151f"
-version = "0.6.70"
+version = "0.6.72"
 
     [deps.Zygote.extensions]
     ZygoteColorsExt = "Colors"
@@ -1444,10 +1503,10 @@ uuid = "a4ae2306-e953-59d6-aa16-d00cac43593b"
 version = "3.9.0+0"
 
 [[deps.libass_jll]]
-deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "HarfBuzz_jll", "JLLWrappers", "Libdl", "Pkg", "Zlib_jll"]
-git-tree-sha1 = "5982a94fcba20f02f42ace44b9894ee2b140fe47"
+deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "HarfBuzz_jll", "JLLWrappers", "Libdl", "Zlib_jll"]
+git-tree-sha1 = "e17c115d55c5fbb7e52ebedb427a0dca79d4484e"
 uuid = "0ac62f75-1d6f-5e53-bd7c-93b484bb37c0"
-version = "0.15.1+0"
+version = "0.15.2+0"
 
 [[deps.libblastrampoline_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1480,9 +1539,9 @@ version = "1.18.0+0"
 
 [[deps.libpng_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll"]
-git-tree-sha1 = "d7015d2e18a5fd9a4f47de711837e980519781a4"
+git-tree-sha1 = "b70c870239dc3d7bc094eb2d6be9b73d27bef280"
 uuid = "b53b4c65-9356-5827-b1ea-8c7a1a84506f"
-version = "1.6.43+1"
+version = "1.6.44+0"
 
 [[deps.libvorbis_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Ogg_jll", "Pkg"]
@@ -1499,7 +1558,7 @@ version = "1.1.6+0"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.52.0+1"
+version = "1.59.0+0"
 
 [[deps.p7zip_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1527,19 +1586,17 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╠═881fd396-6f92-11ef-37f7-19f89b7f2521
+# ╠═ecfe9598-8626-4101-bad0-51df09e19f1a
+# ╠═111c0e28-dd2a-4acd-ae8f-c5eb97d34553
+# ╠═7691b1f7-e8f8-4f49-8b78-4c93bfb9ede9
 # ╠═e586210a-de15-4675-bf06-57528f355f43
-# ╠═fa2291b5-e5d2-4720-8f71-7da496a2b620
-# ╠═67a3a583-5b5c-4f3d-899f-6c8d1e80826e
-# ╠═d97416cd-cfd6-47ea-a0ba-9b1cf4e74c13
-# ╠═7c9242be-9924-4dcb-9e10-ccfb78463131
-# ╠═00c2a5c3-fd6e-4fc9-8a6b-74769fa71a02
-# ╠═ea15d762-d2e8-4b43-8d03-0aa2bd1de6a9
-# ╠═6bbfebd5-5e7e-448d-b25b-d740a7a3a54f
-# ╠═142982a3-9bcc-4d5b-ac41-4e8f534af60b
-# ╠═34c9123a-2446-43ce-b278-9a7005c90afa
-# ╠═0218df75-241d-497d-af1c-e27bfc18bf42
-# ╟─006aa7c0-8b1e-4461-9050-044ff4a30aa0
-# ╠═0919d93f-3592-4edd-a3ff-f0eaae13060e
-# ╠═b1cff6c5-b225-4083-901a-3285cec59043
+# ╠═2df4aab8-89b9-473e-9353-79ad976d48ab
+# ╠═34c97f40-a22f-4a84-aa8d-869a6d88779f
+# ╠═7245cd8a-2a67-434a-ab90-0e7c95f50c7b
+# ╠═a88bb63f-a6f4-4f2e-9ac0-cf6c7e5cec00
+# ╠═934d2197-df7d-4fb8-95ac-a376d6c48161
+# ╠═a2d9826f-3fb0-4306-a802-70478f1fcd9b
+# ╠═e335b114-713a-4a10-b3d8-26ce1d65b4df
+# ╠═e4cec4a1-027e-4aca-a3c1-4d189e8d91c3
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
