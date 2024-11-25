@@ -57,3 +57,8 @@ Additional Required Items
 
 -   At the end of the report, **indicate whether you are willing to share the report publicly** for other students to benefit from. I highly recommend choosing to share since future students may be able to build off of or be inspired by your work. **Please include one of the following release sentences**: \"The authors grant permission for this report to be posted publicly.\" or \"The authors do NOT grant permission for this report to be posted publicly.\"
 -   Clearly **indicate which algorithms you implemented from scratch** vs used off-the-shelf implementations.
+
+Late Policy
+-----------
+
+Since the review assignment depends on everyone submitting their reports, the normal 72-hour 10% off late policy does not apply. The assignment is due at midnight. If it is turned in after midnight but by 8 am the next morning, there will be a 10% penalty.

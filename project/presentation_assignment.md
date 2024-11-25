@@ -18,5 +18,4 @@ The target audience that you should address is a peer in this class. You can ass
 Concrete deliverables
 ---------------------
 
-You must submit a pdf version of your slides by the beginning of class on the day that you present.
-I am not requiring early slide submission like I did for the paper presentations, but please remember that starting to think about slides on the last day is likely to result in a presentation that you are not happy with.
+You must submit a pdf version of your slides by the beginning of class on the day that you present.  I am not requiring early slide submission like I did for the paper presentations, but please remember that starting to think about slides on the last day is likely to result in a presentation that you are not happy with.
