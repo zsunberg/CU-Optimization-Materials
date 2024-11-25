@@ -1,11 +1,11 @@
-ASEN 6519 Final Project Report Assignment {#asen-5264-final-project-report-assignment .unnumbered}
+ASEN 6519 Optimization Final Project Report Assignment 
 =========================================
 
 The final assignment for the class is report on your final project. The
 goal is to produce a paper that is similar to a conference paper (but
 probably with narrower scope and less novelty).
 
-Formatting {#formatting .unnumbered}
+Formatting
 ----------
 
 The length must be between 4 and 8 pages *not including references*. You
@@ -16,7 +16,7 @@ may use other formats, but they should be single spaced and have margins
 similar to the IEEE format (i.e. versions suitable for final submission
 to a conference rather than drafts).
 
-Target Audience {#target-audience .unnumbered}
+Target Audience 
 ---------------
 
 The target audience that you should write to is a peer in this class.
@@ -24,7 +24,7 @@ You can assume the reader will be familiar with the basic concepts
 introduced in the class, but you should describe the details of the work
 you did.
 
-Outline {#outline .unnumbered}
+Outline 
 -------
 
 I recommend using the following outline (you don't have to use this
@@ -46,7 +46,7 @@ exactly, but all of the info should be included):
 
 7.  Contributions and Release (see below)
 
-Additional Required Items {#additional-required-items .unnumbered}
+Additional Required Items 
 =========================
 
 -   You must conduct a basic familiarization of literature related to
