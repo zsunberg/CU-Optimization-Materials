@@ -1,4 +1,4 @@
-ASEN 6519 DMU++ Final Project Presentation Assignment
+ASEN 6519 Optimization Final Project Presentation Assignment
 =========================
 
 The final assignment for the class is a final project. This is the presentation component. The presentation is a chance to share what you have learned in your project with the rest of the class. In this way, a high quality final project presentation benefits the entire class.
