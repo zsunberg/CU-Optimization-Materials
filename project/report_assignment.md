@@ -1,9 +1,7 @@
 ASEN 6519 Optimization Final Project Report Assignment 
 =========================================
 
-The final assignment for the class is report on your final project. The
-goal is to produce a paper that is similar to a conference paper (but
-probably with narrower scope and less novelty).
+The last major assignment for the class is the final project report.  The goal is to produce a paper that is similar to a conference paper (but probably with narrower scope and less novelty).
 
 Formatting
 ----------
@@ -34,12 +32,11 @@ exactly, but all of the info should be included):
 
 2.  Background and Related Work
 
-3.  Problem Formulation (make sure to clearly define S, A, T, and R if
-    you are using an MDP example)
+3.  Problem Formulation 
 
 4.  Solution Approach
 
-5.  Results (plots and tables - quantify the uncertainty if possible)
+5.  Results (plots and/or tables)
 
 6.  Conclusion (and possible Future Work if you want to describe
     potential extensions)
@@ -51,20 +48,12 @@ Additional Required Items
 
 -   You must conduct a basic familiarization of literature related to
     your project. Your report should contain **at least 5 citations of
-    related published work** and a brief description of how these relate
+    related work published in an academic journal or conference proceedings** and a brief description of how these relate
     to your project.
 
 -   At the end of the report include a few sentences about the
     **contributions of each team member** (e.g. \"Bob collected and
     cleaned the data, Alice implemented the algorithm\", etc.)
 
--   At the end of the report, **indicate whether you are willing to
-    share the report publicly** for other students to benefit from. I
-    highly recommend choosing to share since future students may be able
-    to build off of or be inspired by your work. **Please include one of
-    the following release sentences**: \"The authors grant permission
-    for this report to be posted publicly.\" or \"The authors do NOT
-    grant permission for this report to be posted publicly.\"
-
--   Clearly **indicate which algorithms you implemented from scratch**
-    vs used off-the-shelf implementations.
+-   At the end of the report, **indicate whether you are willing to share the report publicly** for other students to benefit from. I highly recommend choosing to share since future students may be able to build off of or be inspired by your work. **Please include one of the following release sentences**: \"The authors grant permission for this report to be posted publicly.\" or \"The authors do NOT grant permission for this report to be posted publicly.\"
+-   Clearly **indicate which algorithms you implemented from scratch** vs used off-the-shelf implementations.
