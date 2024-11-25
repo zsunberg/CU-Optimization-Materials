@@ -1,7 +1,7 @@
 ASEN 6519 Optimization Final Project Report Assignment 
 =========================================
 
-The last major assignment for the class is the final project report.  The goal is to produce a paper that is similar to a conference paper (but probably with narrower scope and less novelty).
+The last major assignment for the class is the final project. This is the report component of the project. The goal is to produce a paper that is similar to a conference paper (but probably with narrower scope and less novelty).
 
 Formatting
 ----------
