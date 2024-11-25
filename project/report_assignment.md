@@ -61,4 +61,4 @@ Additional Required Items
 Late Policy
 -----------
 
-Since the review assignment depends on everyone submitting their reports, the normal 72-hour 10% off late policy does not apply. The assignment is due at midnight. If it is turned in after midnight but by 8 am the next morning, there will be a 10% penalty.
+Since the review assignment depends on everyone submitting their reports, the normal 72-hour 10% off late policy does not apply. Instead, if it is turned in late, it MUST be turned in within 24 hours of the original due date and there will be a 10% penalty for late submissions.
