@@ -1,4 +1,4 @@
-ASEN 5264 Final Project Report Assignment {#asen-5264-final-project-report-assignment .unnumbered}
+ASEN 6519 Final Project Report Assignment {#asen-5264-final-project-report-assignment .unnumbered}
 =========================================
 
 The final assignment for the class is report on your final project. The
