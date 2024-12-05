@@ -6,7 +6,7 @@ The final assignment for the class is a final project. This is the presentation 
 Assignment Scope
 ----------------
 
-You will give a 12-15 minute presentation on the date assigned to you on the course schedule. You will then have 3-6 minutes to answer questions.
+You will give a 12-15 minute presentation on the date assigned to you on the course schedule. You will then have ~~3-6~~ 1-4 minutes to answer questions.
 
 You should cover, at least at a high level, all of the sections outlined in the project *report* assignment. However, since some of the presentations are before the project report is due, you do not need to have all results completed. The minimum requirement for the presentation is to have **a result**, i.e. the optimization is working an has found a solution to at least a basic version of the problem. The report may contain more results than you are able to present.
 
